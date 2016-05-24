@@ -19,6 +19,6 @@
     "watchify": "3.7.0"
   },
   "dependencies": {
-    "onscreen": "1.1.2"
+    "onscreen": "1.1.3"
   }
 }

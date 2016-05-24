@@ -34,23 +34,20 @@
    * @param {node} element The DOM node you want to check
    * @return {boolean} A boolean value that indicates wether is on or off the viewport.
    */
-  function insideViewport(el) {
-      var options = arguments.length <= 1 || arguments[1] === undefined ? { tolerance: 0, container: window } : arguments[1];
+  function inViewport(el) {
+      var options = arguments.length <= 1 || arguments[1] === undefined ? { tolerance: 0 } : arguments[1];
 
-      if (!el) return false;
+      if (!el) {
+          throw new Error('You should specify the element you want to test');
+      }
 
       if (typeof el === 'string') {
           el = document.querySelector(el);
       }
-      if (typeof options === 'string') {
-          options = { container: document.querySelector(options) };
-      }
 
-      var visible = void 0;
       var elRect = el.getBoundingClientRect();
 
-      if (options.container === window) {
-          visible =
+      return(
           // Check bottom boundary
           elRect.bottom - options.tolerance > 0 &&
 
@@ -61,11 +58,49 @@
           elRect.left + options.tolerance < (window.innerWidth || document.documentElement.clientWidth) &&
 
           // Check top boundary
-          elRect.top + options.tolerance < (window.innerHeight || document.documentElement.clientHeight);
-      } else {
-          var containerRect = options.container.getBoundingClientRect();
+          elRect.top + options.tolerance < (window.innerHeight || document.documentElement.clientHeight)
+      );
+  }
 
-          visible =
+  /**
+   * Checks an element's position in respect to the viewport
+   * and determines wether it's inside the viewport.
+   *
+   * @param {node} element The DOM node you want to check
+   * @return {boolean} A boolean value that indicates wether is on or off the viewport.
+   */
+  function inContainer(el) {
+      var options = arguments.length <= 1 || arguments[1] === undefined ? { tolerance: 0, container: '' } : arguments[1];
+
+      if (!el) {
+          throw new Error('You should specity the element you want to test');
+      }
+
+      if (typeof el === 'string') {
+          el = document.querySelector(el);
+      }
+      if (typeof options === 'string') {
+          options = {
+              tolerance: 0,
+              container: document.querySelector(options)
+          };
+      }
+      if (typeof options.container === 'string') {
+          options.container = document.querySelector(options.container);
+      }
+      if (options instanceof HTMLElement) {
+          options = {
+              tolerance: 0,
+              container: options
+          };
+      }
+      if (!options.container) {
+          throw new Error('You should specify a container element');
+      }
+
+      var containerRect = options.container.getBoundingClientRect();
+
+      return(
           // // Check bottom boundary
           el.offsetTop + el.clientHeight - options.tolerance > options.container.scrollTop &&
 
@@ -76,10 +111,8 @@
           el.offsetLeft + options.tolerance < containerRect.width + options.container.scrollLeft &&
 
           // // Check top boundary
-          el.offsetTop + options.tolerance < containerRect.height + options.container.scrollTop;
-      }
-
-      return visible;
+          el.offsetTop + options.tolerance < containerRect.height + options.container.scrollTop
+      );
   }
 
   function eventHandler() {
@@ -87,12 +120,19 @@
       var options = arguments.length <= 1 || arguments[1] === undefined ? { tolerance: 0 } : arguments[1];
 
       var selectors = Object.keys(trackedElements);
+      var testVisibility = void 0;
 
       if (!selectors.length) return;
 
+      if (options.container === window) {
+          testVisibility = inViewport;
+      } else {
+          testVisibility = inContainer;
+      }
+
       selectors.forEach(function (selector) {
           trackedElements[selector].nodes.forEach(function (item) {
-              if (insideViewport(item.node, options)) {
+              if (testVisibility(item.node, options)) {
                   item.wasVisible = item.isVisible;
                   item.isVisible = true;
               } else {
@@ -326,7 +366,7 @@
       }
   });
 
-  OnScreen.check = insideViewport;
+  OnScreen.check = inViewport;
 
   return OnScreen;
 
